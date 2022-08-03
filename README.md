@@ -10,6 +10,7 @@ pip install
 ```
 pip install pycmdbuild
 ```
+change content of __init__.py to above ``cmdbuild/__init__.py``
 
 import the package:
 
@@ -20,14 +21,14 @@ from cmdbuild.client import CMDBuild
 ### Getting Started
 
 ```
-from cmdbuild.client import CMDBuild
+from cmdbuild import CMDBuild
 
 client = CMDBuild(CMDB_HOST, CMDB_USERNAME, CMDB_PASSWORD)
 client.connect()
 
 client.session_info()
 client.lookup_types_info()
-client.domains_list()
+client.domain_list()
 ```
 
 ### Documentation for API Endpoints
