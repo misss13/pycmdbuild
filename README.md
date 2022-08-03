@@ -10,7 +10,7 @@ pip install
 ```
 pip install pycmdbuild
 ```
-change content of __init__.py to above ``cmdbuild/__init__.py``
+change content of ``__init__.py`` to above ``cmdbuild/__init__.py``
 
 import the package:
 
