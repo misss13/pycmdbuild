@@ -15,7 +15,7 @@ change content of ``__init__.py`` to above ``cmdbuild/__init__.py``
 import the package:
 
 ```
-from cmdbuild.client import CMDBuild
+from cmdbuild import CMDBuild
 ```
 
 ### Getting Started
