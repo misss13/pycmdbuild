@@ -6,18 +6,13 @@ import json
 
 class Logger(object):
     def __init__(self, name):
-        """
-        :param name:    日志记录的用例名
-        """
+        """Logging class"""
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.DEBUG)
-        # 日志格式
         formatter = logging.Formatter('%(asctime)s.%(msecs)03d %(process)d %(name)s - %(levelname)s - %(message)s',
                                       datefmt="%Y-%m-%d %H:%M:%S")
-        # 输出到控制台
         cn = logging.StreamHandler()
         cn.setFormatter(formatter)
-        # 添加handle
         self.logger.addHandler(cn)
 
     def get_logger(self):
@@ -25,19 +20,16 @@ class Logger(object):
 
 
 logger = Logger(__name__).get_logger()
-
 METHOD_GET = "GET"
 METHOD_PUT = "PUT"
 METHOD_POST = "POST"
 METHOD_DELETE = "DELETE"
-INFO = 'CMDBuild python lib version: v0.1'
-VERSION = 'v0.1'
+INFO = 'CMDBuild python lib version: v0.3'
+VERSION = 'v0.3'
 
 
 class CMDBuild(object):
-    """
-    CMDBuild interface class. Please see _dir_ for methods
-    """
+    """CMDBuild interface class. Please see _dir_ for methods"""
 
     def __init__(self, host, username, password):
         self.host = host
@@ -75,7 +67,7 @@ class CMDBuild(object):
             elif isinstance(data, dict):
                 return json.dumps(data)
             else:
-                json.load(data)
+                json.loads(data)
                 return data
         except ValueError:
             raise ValueError("CMDBuild - ERROR: Data is not a valid JSON object")
@@ -96,17 +88,17 @@ class CMDBuild(object):
     def api(self, path):
         return "{host}/services/rest/v2/{path}/".format(host=self.host.strip('/'), path=path.strip())
 
-    def request(self, path, method="GET", data=None, params=None):
+    def request(self, path, method="GET", timeout=40, data=None, params=None):
         api = self.api(path)
-        func = getattr(requests, method.lower())
+        func = getattr(requests, method.lower(), timeout)
         data = self.json_data(data)
-        resp = func(api, data=data, params=params, headers=self.headers)
+        resp = func(api, data=data, params=params, headers=self.headers, timeout=timeout)
         try:
             ret = resp.json()
         except:
             ret = dict(errors=[dict(message=resp.text)])
         if self.error_status_code(resp.status_code):
-            logger.error("CMDBuild - INFO: {0} - {1} - Data: {2}".format(method, resp.status_code, data))
+            logger.error("CMDBuild - INFO: {0} - {1}".format(method, resp.status_code))
             resp.raise_for_status()
         return resp.status_code, ret
 
@@ -188,6 +180,12 @@ class CMDBuild(object):
     def class_get_attributes_by_type(self, typ):
         path = "classes/{}/attributes".format(typ)
         return self.request(path)
+
+
+    def class_get_cards_by_class(self, typ):
+        path = "classes/{0}/cards".format(typ)
+        return self.request(path)
+
 
     def class_get_cards_by_type_custom_filter(self, typ, filter_dict=None):
         filter_dict = {} if filter_dict is None else filter_dict
