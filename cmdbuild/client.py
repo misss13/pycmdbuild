@@ -19,13 +19,13 @@ class Logger(object):
         return self.logger
 
 
-logger = Logger(__name__).get_logger()
 METHOD_GET = "GET"
 METHOD_PUT = "PUT"
 METHOD_POST = "POST"
 METHOD_DELETE = "DELETE"
 INFO = 'CMDBuild python lib version: v0.3'
 VERSION = 'v0.3'
+logger = Logger(__name__).get_logger()
 
 
 class CMDBuild(object):
