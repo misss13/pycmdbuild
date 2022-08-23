@@ -1,6 +1,7 @@
 # coding=utf-8
-import logging
+import urllib.parse
 import requests
+import logging
 import json
 
 
@@ -43,6 +44,7 @@ class CMDBuild(object):
             'Accept': '*/*'
         }
 
+
     def check_args(self):
         if not self.host:
             raise Exception('CMDBuild - ERROR: No host supplied')
@@ -51,6 +53,7 @@ class CMDBuild(object):
         if not self.password:
             raise Exception('CMDBuild - ERROR: No password supplied')
 
+
     @property
     def headers(self):
         return {
@@ -58,6 +61,7 @@ class CMDBuild(object):
             'Accept': '*/*',
             'CMDBuild-Authorization': self.session_id
         }
+
 
     @staticmethod
     def json_data(data):
@@ -72,9 +76,11 @@ class CMDBuild(object):
         except ValueError:
             raise ValueError("CMDBuild - ERROR: Data is not a valid JSON object")
 
+
     @staticmethod
     def error_status_code(status_code):
         return status_code // 100 != 2
+
 
     @staticmethod
     def get_session_id(ret):
@@ -85,10 +91,33 @@ class CMDBuild(object):
                 return session_id
         raise requests.RequestException("CMDBuild - ERROR: Don't Get Session ID")
 
+
+    def api_card(self, path):
+        """Works with card filtering ALL REQUESTS END WITH / CHARTER EXCEPT THIS UPDATE CARD"""
+        return "{host}/services/rest/v2/{path}".format(host=self.host.strip('/'), path=path.strip())
+
+
+    def request_card_filter(self, path, method="GET", data=None, params=None, timeout=50):
+        """Works with card filtering"""
+        api_card = self.api_card(path)
+        func = getattr(requests, method.lower(), timeout)
+        data = self.json_data(data)
+        resp = func(api_card, data=data, params=params, headers=self.headers, timeout=timeout)
+        try:
+            ret = resp.json()
+        except:
+            ret = dict(errors=[dict(message=resp.text)])
+        if self.error_status_code(resp.status_code):
+            logger.error("CMDBuild - INFO: {0} - {1}".format(method, resp.status_code))
+            resp.raise_for_status()
+        return resp.status_code, ret
+
+
     def api(self, path):
         return "{host}/services/rest/v2/{path}/".format(host=self.host.strip('/'), path=path.strip())
 
-    def request(self, path, method="GET", timeout=40, data=None, params=None):
+
+    def request(self, path, method="GET", data=None, params=None, timeout=50):
         api = self.api(path)
         func = getattr(requests, method.lower(), timeout)
         data = self.json_data(data)
@@ -102,6 +131,7 @@ class CMDBuild(object):
             resp.raise_for_status()
         return resp.status_code, ret
 
+
     def connect(self):
         data = dict(username=self.username, password=self.password)
         path = "sessions"
@@ -109,10 +139,12 @@ class CMDBuild(object):
         self.session_id = self.get_session_id(ret)
         return self.session_id
 
+
     def close(self):
         path = "sessions/{0}".format(self.session_id)
         self.session_id = None
         return self.request(path, method='DELETE')
+
 
     def session_info(self):
         """
@@ -121,12 +153,14 @@ class CMDBuild(object):
         path = "sessions/{0}".format(self.session_id)
         return self.request(path)
 
+
     def lookup_types_info(self):
         """
         Return list of defined lookup types
         """
         path = "lookup_types"
         return self.request(path)
+
 
     def lookup_type_values(self, pk):
         """
@@ -135,12 +169,14 @@ class CMDBuild(object):
         path = "lookup_types/{0}/values".format(pk)
         return self.request(path)
 
+
     def lookup_type_details(self, name, pk):
         """
         Return value for given lookup type id
         """
         path = "lookup_types/{0}/values/{1}".format(name, pk)
         return self.request(path)
+
 
     def domain_list(self):
         """
@@ -149,12 +185,14 @@ class CMDBuild(object):
         path = "domains"
         return self.request(path)
 
+
     def domain_relations(self, pk):
         """
         Return relations of specified domain as json object
         """
         path = "domains/{}/relations".format(pk)
         return self.request(path)
+
 
     def domain_relation_creation(self, name, data):
         """
@@ -163,6 +201,7 @@ class CMDBuild(object):
         path = "domains/{}/relations".format(name)
         return self.request(path=path, method=METHOD_POST, data=data)
 
+
     def class_list(self):
         """
         Return json object with list of available classes
@@ -170,12 +209,14 @@ class CMDBuild(object):
         path = "classes"
         return self.request(path)
 
+
     def class_details(self, typ):
         """
         Return details of specified class as json object
         """
         path = "classes/{}".format(typ)
         return self.request(path)
+
 
     def class_get_attributes_by_type(self, typ):
         path = "classes/{}/attributes".format(typ)
@@ -185,12 +226,19 @@ class CMDBuild(object):
     def class_get_cards_by_class(self, typ):
         path = "classes/{0}/cards".format(typ)
         return self.request(path)
+    
+
+    def class_get_cards_by_custom_filter(self, typ, filter_dict=None):
+        filter_dict = urllib.parse.quote(str(filter_dict ))
+        path = "classes/{0}/cards?filter={1}".format(typ, filter_dict)
+        return self.request_card_filter(path)
 
 
     def class_get_cards_by_type_custom_filter(self, typ, filter_dict=None):
         filter_dict = {} if filter_dict is None else filter_dict
         path = "classes/{0}/cards?filter={1}".format(typ, filter_dict)
         return self.request(path)
+
 
     def class_get_cards_by_type(self, typ, filter_list=None):
         """
@@ -219,9 +267,11 @@ class CMDBuild(object):
         path = "classes/{0}/cards?filter={1}".format(typ, filter_data)
         return self.request(path)
 
+
     def class_get_card_details(self, typ, pk):
         path = "classes/{0}/cards/{1}".format(typ, pk)
         return self.request(path)
+
 
     def class_insert_card(self, typ, card_object):
         """
@@ -230,12 +280,14 @@ class CMDBuild(object):
         path = "classes/{0}/cards".format(typ)
         return self.request(path=path, method=METHOD_POST, data=card_object)
 
+
     def class_update_card(self, typ, pk, card_object):
         """
         Update card with name into cmdbuild
         """
         path = "classes/{0}/cards/{1}".format(typ, pk)
         return self.request(path=path, method=METHOD_PUT, data=card_object)
+
 
     def class_delete_card(self, typ, pk):
         """
@@ -244,12 +296,14 @@ class CMDBuild(object):
         path = "classes/{0}/cards/{1}".format(typ, pk)
         return self.request(path=path, method=METHOD_DELETE)
 
+
     def create_relation(self, typ, card_object):
         """
         Insert card with name into cmdbuild
         """
         path = "domains/{0}/relations".format(typ)
         return self.request(path, "POST", data=card_object)
+
 
     def update_relation(self, typ, card_object, pk):
         """
@@ -258,6 +312,7 @@ class CMDBuild(object):
         path = "domains/{0}/relations/{1}".format(typ, pk)
         return self.request(path, "PUT", data=card_object)
 
+
     def delete_relation(self, typ, pk):
         """
         Delete Relation of specified class as json object
@@ -265,12 +320,14 @@ class CMDBuild(object):
         path = "domains/{0}/relations/{1}".format(typ, pk)
         return self.request(path, "DELETE")
 
+
     def list_relation(self, typ):
         """
         Delete Relation of specified class as json object
         """
         path = "domains/{0}/relations".format(typ)
         return self.request(path)
+
 
     def get_relation_details(self, typ, pk):
         """
